@@ -10,5 +10,5 @@ let personData = new mongoose.Schema({
     resetPasswordToken: { type: String },
     flag : {type : Number}
 })
- let data = mongoose.model("personData",personData);
- module.exports = data ;
+ module.exports = mongoose.model("personData",personData);
+ 
