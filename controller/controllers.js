@@ -3,93 +3,94 @@ const userModel = require('../models/models')
 const Joi = require('joi');
 const service = require('../services/service');
 const bcrypt = require('bcrypt');
-let jwt = require('jsonwebtoken');
 
 
-personData.getSignUp = function (req, res) {
-    res.sendFile('signup.html', { root: __dirname });
+
+personData.getSignUp = function (request, response) {
+    response.sendFile('signup.html', { root: __dirname });
 }
 
-personData.signUp = function (req, res) {
-    let obj = req.value;
+personData.signUp = function (request, response) {
+    let userRequestdata = request.value;
+
+    Joi.validate(userRequestdata, service.schemaData(), (err, value) => {
 
 
-    Joi.validate(obj, service.schemaData(), (err, value) => {
         if (err) {
-            let response = {
+            let responce = {
                 message: "plese fill the all requried fields",
                 statusCode: 400,
                 data: err
             }
-            res.send(response);
+            response.send(responce);
         } else {
-
-            obj.password = bcrypt.hashSync(obj.password, 2);
-            let saveUserData = new userModel(obj);
-            service.userSevedata(saveUserData, res)
+            userRequestdata.password = bcrypt.hashSync(userRequestdata.password, 2);
+            let saveUserData = new userModel(userRequestdata);
+            service.userSevedata(saveUserData, response)
         }
     })
 }
 
-personData.signIn = function (req, res) {
-    res.sendFile('signin.html', { root: __dirname });
+personData.signIn = function (request, response) {
+    response.sendFile('signin.html', { root: __dirname });
 }
 
-personData.logIn = async function (req, res) {
+personData.logIn = async function (request, response) {
 
-    service.logIn(req.body, res)
+    service.logIn(request.body, response)
 
 }
 
-personData.getuser = async (req, res) => {
+personData.getuser = async (request, response) => {
 
-    service.getUser(req.paginationValue, res)
+    service.getUser(request.paginationValue, response)
 }
 
-personData.getUserById = async (req, res) => {
+personData.getUserById = async (request, response) => {
 
-    service.getUserById(req.paginationValue, res)
+    service.getUserById(request.paginationValue, response)
 }
 
-personData.updateUser = async (req, res) => {
+personData.updateUser = async (request, response) => {
 
-    let obj = {
-        firstName: req.body.firstName,
-        lastName: req.body.lastName
+    let requestuserData = {
+        firstName: request.body.firstName,
+        lastName: request.body.lastName
     }
-    service.updateUser(req.paginationValue, res, obj)
+    service.updateUser(request.paginationValue, response, requestuserData)
 }
 
-personData.deleteUser = async (req, res) => {
+personData.deleteUser = async (request, response) => {
 
-    service.deleteUser(req.paginationValue, res)
+    service.deleteUser(request.paginationValue, response)
 }
 
+personData.resetPassword = async (request, response) => {
+    let obj = request.data
 
-// personData.jwtAuth = async (req, res) => {
+    response.sendFile('resetPassword.html', { root: __dirname });
+}
 
-//     let token = req.headers.authorization;
-//     let decode = jwt.verify(token, "secret");
+personData.task = (request, response) => {
 
-//     let User = await userModel.findOne({ "email": decode.email });
-
-//     if (User || User.role != admin) {
-//         let response = {
-//             satausCode: 401,
-//             message: " unauthorised user "
-//         }
-//         res.json(response)
-//     }
-// }
-
-personData.task = (req, res) => {
-
-    let response = {
+    let responce = {
         message: "fetched user",
         statusCode: 200,
-        data: req.user
+        data: request.user
     }
-    res.json(response);
+    response.json(responce);
+}
+
+personData.emailLink = (request, response) => {
+
+    service.forgotPassword(request.userData, response);
+
+}
+
+personData.changePassword = (request, response, next) => {
+    let passwordPayload = request.body.confirmPassword;
+    service.changePassword(request.data, response, passwordPayload)
+
 }
 
 module.exports = personData;

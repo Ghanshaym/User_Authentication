@@ -4,6 +4,8 @@ const userModel = require('../models/models')
 const bcrypt = require('bcrypt');
 let jwt = require('jsonwebtoken');
 let controllers = require('../controller/controllers')
+let nodemailer = require('nodemailer')
+let USER_DATA_EMAIL_LINK_ = require('../config/server')
 
 services.schemaData = (req, res) => {
   let schema = Joi.object().keys({
@@ -16,75 +18,72 @@ services.schemaData = (req, res) => {
   return schema;
 }
 
-services.userSevedata = (req, res) => {
+services.userSevedata = (request, response) => {
 
-  let obj = req;
-  obj.save((err, value) => {
+  let userData = request;
+
+  userData.save((err, value) => {
+
     if (err) {
-      let response = {
+      let responce = {
         message: "your data will not saved",
         statusCode: 400,
         data: err
       }
-      // res.json(response);
-      res.send(response)
+
+      response.json(responce)
     }
     else if (value) {
-      let response = {
+      let responce = {
         message: "your data will be saved",
         statusCode: 200,
         data: value
       }
-      res.send(response);
+      response.json(responce);
     }
 
   })
 }
 
-services.getUser = async (req, res) => {
-  // let userData = await userModel.findOne({ "firstName": req.firstName });
+services.getUser = async (request, response) => {
 
-  let sortData = await userModel.find().sort({ firstName: 1 }).skip(req.index).limit(req.limit);
-  let response = {
+  let sortData = await userModel.find().sort({ firstName: 1 }).skip(request.index).limit(request.limit);
+  let responce = {
     message: "Fetched user data",
     statusCode: 200,
     data: sortData
   }
-  res.json(response);
+  response.json(responce);
 
 }
 
-services.getUserById = async (req, res) => {
-  // req == req.pagination (this req can hold all the data index, limit , params , headers)
-
-  let getData = await userModel.findById(req.param);
+services.getUserById = async (request, response) => {
+  
+  let getData = await userModel.findById(request.param).lean();
 
   if (getData.role == 'admin' || getData.role == 'normal_user') {
 
-    let response = {
+    let responce = {
       message: "fetched  user",
       statusCode: 200,
       data: getData
     };
-    res.json(response);
+    response.json(responce);
   }
   else {
-    let response = {
+    let responce = {
       message: "role of the user has been missing",
       statusCode: 400
     }
-    res.json(response);
+    response.json(responce);
   }
 }
 
-services.updateUser = async (req, res, obj) => {
-
-  console.log("requestData = " + req.param);
-  console.log(("object = " + obj.firstName));
+services.updateUser = async (req, res, requestuserData) => {
 
   let findUser = await userModel.findById(req.params)
 
-  let updateData = await userModel.findByIdAndUpdate(req.param, { $set: obj });
+  let updateData = await userModel.findByIdAndUpdate(req.param, { $set: requestuserData });
 
   let response = {
     message: "your data will be update",
@@ -95,45 +94,99 @@ services.updateUser = async (req, res, obj) => {
 
 }
 
-services.deleteUser = async(req,res)=>{
-  let findUser = await userModel.findById(req.param)
+services.deleteUser = async (request, response) => {
+  let findUser = await userModel.findById(request.param)
 
-    let deleteUserData = await userModel.findByIdAndDelete(req.param);
+  let deleteUserData = await userModel.findByIdAndDelete(request.param);
 
-    let response = {
-        message: "user data has been deleted",
-        satausCode: 200,
-        data: deleteUserData
-    }
-    res.json(response);
+  let responce = {
+    message: "user data has been deleted",
+    satausCode: 200,
+    data: deleteUserData
+  }
+  response.json(responce);
 }
 
-services.logIn = async(req,res)=>{
-  let personInfo = await userModel.findOne({ email: req.email });
-  bcrypt.compare(req.password, personInfo.password, function (err, same) {
+services.logIn = async (request, response) => {
 
-      if (same) {
-          const token = jwt.sign({
-              email: personInfo.email,
-              _id: personInfo._id,
-              role: personInfo.role
-          }, 'secret');
-          let response = {
-              message: "Loged In successfully",
-              statusCode: 200,
-              token: token
-          }
-          res.json(response)
+
+  let personInfo = await userModel.findOne({ email: request.email });
+  bcrypt.compare(request.password, personInfo.password, function (err, same) {
+
+    if (same) {
+      const token = jwt.sign({
+        email: personInfo.email,
+        _id: personInfo._id,
+        role: personInfo.role
+      }, 'secret');
+      let responce = {
+        message: "Loged In successfully",
+        statusCode: 200,
+        token: token
       }
-      else {
-          let response = {
-              message: "your email and password does not match",
-              satausCode: 400
-          }
-          res.json(response);
+      response.json(responce)
+    }
+    else {
+      let responseData = {
+        message: "your email and password does not match",
+        satausCode: 400
       }
+      response.json(responseData);
+    }
   })
 
 }
+
+services.resetPassword = async (request, response) => {
+  console.log("Enter in reset Password");
+
+}
+
+services.forgotPassword = async (request, response) => {
+
+  let resetToken = jwt.sign({
+    email: request.email,
+    _id: request._id0
+  }, 'secret',{
+    expiresIn: 60
+  });
+
+  let obj = resetToken ; 
+  await request.save();
+  let transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: USER_DATA_EMAIL_LINK_.USER_EMAIL,
+      pass: USER_DATA_EMAIL_LINK_.USER_PASSWORD
+    }
+  });
+  let mailOptions = {
+    from: "poonergagan@gmail.com",
+    to: "gaganchoudhary658@gmail.com", // list of receivers
+    subject: "Reset_Password_Link", // Subject line
+    html: '<p>Click <a href="http://localhost:3000/resetPassword/' + obj + '">here</a> to reset your password</p>' // plain text body
+  };
+  let info = await transporter.sendMail(mailOptions, (err, value) => {
+    if (err) {
+
+    
+      response.send(err)
+    }
+    response.send(value);
+  });
+}
+services.changePassword = async (request, response, passwordPayload) => {
+
+  passwordUpdate = bcrypt.hashSync(passwordPayload, 2)
+  let updatePassword = await userModel.updateMany({ password: request.password }, { $set: { password: passwordUpdate } })
+  console.log('update password' + updatePassword);
+  let responce = {
+    statusCode: 200,
+    message: "your password will be update",
+    email: request.email
+  }
+  response.json(responce);
+}
+
 
 module.exports = services;

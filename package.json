@@ -4,7 +4,7 @@
   "description": "this is my project",
   "main": "app.js",
   "scripts": {
-    "start": "node app.js"
+    "start": "nodemon app.js"
   },
   "author": "GhanShyam",
   "license": "ISC",
@@ -16,6 +16,8 @@
     "express-jwt": "^5.3.1",
     "jsonwebtoken": "^8.5.1",
     "multer": "^1.4.1",
+    "node-mailer": "^0.1.1",
+    "nodemailer": "^6.3.0",
     "pug": "^2.0.4",
     "swagger-json": "^2.0.0",
     "swagger-ui-express": "^4.0.7"
